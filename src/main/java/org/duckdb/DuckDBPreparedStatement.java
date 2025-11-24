@@ -259,8 +259,7 @@ public class DuckDBPreparedStatement implements PreparedStatement {
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
-        // I think here?
-        Boolean close_transaction = false;
+        boolean close_transaction = false;
         if (!this.conn.transactionRunning) {
             startTransaction();
             close_transaction = true;
@@ -275,7 +274,6 @@ public class DuckDBPreparedStatement implements PreparedStatement {
 
     @Override
     public int executeUpdate(String sql) throws SQLException {
-        // Potentially here as well
         long res = executeLargeUpdate(sql);
         return intFromLong(res);
     }
