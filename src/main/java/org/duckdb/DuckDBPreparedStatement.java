@@ -259,30 +259,16 @@ public class DuckDBPreparedStatement implements PreparedStatement {
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
-        boolean startedTransaction = false;
-        boolean close_transaction = false;
-        if (!this.conn.transactionRunning) {
-            startTransaction();
-            startedTransaction = true;
-            // only auto-close (commit) if connection is in auto-commit mode
-            close_transaction = this.conn.getAutoCommit();
+        // if auto commit is false, just run prepare and execute in separate transactions
+        if (!this.conn.getAutoCommit() || this.conn.transactionRunning) {
+            prepare(sql);
+            return executeQuery();
         }
         try {
+            startTransaction();
+            startedTransaction = true;
             prepare(sql);
             ResultSet result = executeQuery();
-            if (close_transaction) {
-                try {
-                    this.conn.commit();
-                } catch (SQLException commitEx) {
-                    // if commit fails try to rollback and attach suppressed exception
-                    try {
-                        this.conn.rollback();
-                    } catch (SQLException rbEx) {
-                        commitEx.addSuppressed(rbEx);
-                    }
-                    throw commitEx;
-                }
-            }
             return result;
         } catch (SQLException e) {
             // If we started the transaction for this call, abort it on error.
